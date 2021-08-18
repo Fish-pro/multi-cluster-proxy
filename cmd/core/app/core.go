@@ -1,10 +1,10 @@
 package app
 
 import (
-	"github.com/Fish-pro/multi-cluster-proxy/pkg/apiserver"
 	"github.com/urfave/cli/v2"
 	"k8s.io/sample-controller/pkg/signals"
 
+	"github.com/Fish-pro/multi-cluster-proxy/pkg/apiserver"
 	"github.com/Fish-pro/multi-cluster-proxy/pkg/config"
 	"github.com/Fish-pro/multi-cluster-proxy/pkg/core"
 	"github.com/Fish-pro/multi-cluster-proxy/pkg/mlog"
@@ -25,7 +25,7 @@ func run(c *config.Config, stop <-chan struct{}) {
 
 	core := core.New(c)
 
-	core.IntegrateWith("apiserver-proxy", apiserver.NewAPIServerWithOpts(c))
+	core.IntegrateWith("multi-cluster-proxy", apiserver.NewAPIServerWithOpts(c))
 
 	err := core.Initialize()
 	if err != nil {
