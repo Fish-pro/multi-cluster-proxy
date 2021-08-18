@@ -16,7 +16,7 @@ import (
 	"github.com/Fish-pro/multi-cluster-proxy/pkg/mlog"
 )
 
-const APIPathRoot = "/v1"
+const APIV1PathRoot = "/v1"
 
 // APIServer aggregates all cube apis
 type APIServer struct {
@@ -30,6 +30,10 @@ func registerCoreAPI(c *config.Config) http.Handler {
 
 	middlewares.SetUpMiddlewares(router)
 
+	v1Router := router.Group(APIV1PathRoot, gin.BasicAuth(gin.Accounts{
+		c.BasicAuthUser: c.BasicAuthPassword,
+	}))
+
 	router.GET("/ping", func(c *gin.Context) {
 		mlog.Info("ping server success")
 		c.JSON(200, map[string]string{
@@ -37,10 +41,9 @@ func registerCoreAPI(c *config.Config) http.Handler {
 		})
 	})
 
-	clusterMange := router.Group(APIPathRoot+"/clusters", gin.BasicAuth(gin.Accounts{
-		c.BasicAuthUser: c.BasicAuthPassword,
-	}))
 	clusterService := clusterSvc.NewServiceContext(c)
+
+	clusterMange := v1Router.Group("/clusters")
 	{
 		clusterMange.GET("", func(c *gin.Context) {
 			cluster.ListClusters(c, clusterService)
@@ -59,7 +62,7 @@ func registerCoreAPI(c *config.Config) http.Handler {
 		})
 	}
 
-	k8sApiProxy := router.Group(APIPathRoot + "/proxy")
+	k8sApiProxy := v1Router.Group("/proxy")
 	{
 		k8sApiProxy.Any("/clusters/:cluster/*url", func(c *gin.Context) {
 			handler.ProxyHandle(c, clusterService)
