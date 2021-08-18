@@ -1,0 +1,8 @@
+.DS_Store
+.vscode
+
+# Test data
+testdata
+
+# Dependency directories (remove the comment below to include it)
+# vendor
