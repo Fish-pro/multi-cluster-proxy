@@ -1,10 +1,12 @@
-package handle
+package handler
 
 import (
 	"crypto/tls"
+	"github.com/Fish-pro/multi-cluster-proxy/pkg/apiserver/coreapi/cluster/service"
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,17 +29,21 @@ var ts = &http.Transport{
 	TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 }
 
-func ProxyHandle(c *gin.Context) {
+func ProxyHandle(c *gin.Context, svc *service.ServiceContext) {
 	// http request params
 	cluster := c.Param("cluster")
 	url := c.Param("url")
 
 	// get cluster info by cluster name
-	host, _, _ := getClusterInfo(cluster)
-	if host == "" {
+	clusterInfo, err := svc.Model.FindOne(cluster)
+	if err != nil {
+		mlog.Error("failed to get cluster %s err: %s", cluster, err.Error())
 		response.FailReturn(c, errcode.ClusterNotFoundError(cluster))
 		return
 	}
+
+	host := strings.Replace(clusterInfo.Url, "https://", "", -1)
+
 	// create director
 	director := func(req *http.Request) {
 		req.URL.Scheme = "https"

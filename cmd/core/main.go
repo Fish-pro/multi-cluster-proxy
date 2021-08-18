@@ -16,7 +16,7 @@ var version = "1.0.0"
 func main() {
 	app := cli.NewApp()
 	app.Name = "multi-cluster-proxy"
-	app.Usage = "KubCube is foundation of the world upon"
+	app.Usage = "multi-cluster-proxy is multi cluster proxy"
 	app.Version = version
 	app.Compiled = time.Now()
 	app.Copyright = "(c) " + strconv.Itoa(time.Now().Year()) + " multi-cluster-proxy"

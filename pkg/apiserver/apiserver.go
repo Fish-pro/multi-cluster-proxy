@@ -3,12 +3,14 @@ package apiserver
 import (
 	"context"
 	"fmt"
+	"github.com/Fish-pro/multi-cluster-proxy/pkg/apiserver/coreapi/cluster"
+	clusterSvc "github.com/Fish-pro/multi-cluster-proxy/pkg/apiserver/coreapi/cluster/service"
+	"github.com/Fish-pro/multi-cluster-proxy/pkg/apiserver/coreapi/handler"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/Fish-pro/multi-cluster-proxy/pkg/apiserver/coreapi/handle"
 	"github.com/Fish-pro/multi-cluster-proxy/pkg/apiserver/middlewares"
 	"github.com/Fish-pro/multi-cluster-proxy/pkg/config"
 	"github.com/Fish-pro/multi-cluster-proxy/pkg/mlog"
@@ -23,7 +25,7 @@ type APIServer struct {
 	Server *http.Server
 }
 
-func registerCoreAPI() http.Handler {
+func registerCoreAPI(c *config.Config) http.Handler {
 	router := gin.New()
 
 	middlewares.SetUpMiddlewares(router)
@@ -35,21 +37,45 @@ func registerCoreAPI() http.Handler {
 		})
 	})
 
+	clusterMange := router.Group(APIPathRoot+"/clusters", gin.BasicAuth(gin.Accounts{
+		c.BasicAuthUser: c.BasicAuthPassword,
+	}))
+	clusterService := clusterSvc.NewServiceContext(c)
+	{
+		clusterMange.GET("", func(c *gin.Context) {
+			cluster.ListClusters(c, clusterService)
+		})
+		clusterMange.GET("/:name", func(c *gin.Context) {
+			cluster.GetCluster(c, clusterService)
+		})
+		clusterMange.POST("", func(c *gin.Context) {
+			cluster.CreateCluster(c, clusterService)
+		})
+		clusterMange.PUT("/:name", func(c *gin.Context) {
+			cluster.UpdateCluster(c, clusterService)
+		})
+		clusterMange.DELETE("/:name", func(c *gin.Context) {
+			cluster.DeleteCluster(c, clusterService)
+		})
+	}
+
 	k8sApiProxy := router.Group(APIPathRoot + "/proxy")
 	{
-		k8sApiProxy.Any("/clusters/:cluster/*url", handle.ProxyHandle)
+		k8sApiProxy.Any("/clusters/:cluster/*url", func(c *gin.Context) {
+			handler.ProxyHandle(c, clusterService)
+		})
 	}
 
 	return router
 }
 
 func NewAPIServerWithOpts(c *config.Config) *APIServer {
-	router := registerCoreAPI()
+	handler := registerCoreAPI(c)
 
 	return &APIServer{
 		Config: c,
 		Server: &http.Server{
-			Handler: router,
+			Handler: handler,
 			Addr:    fmt.Sprintf("%s:%s", c.Host, c.Port),
 		},
 	}
